@@ -1,0 +1,13 @@
+[project]
+name = "podcast-summarization"
+version = "0.1.0"
+description = "Podcast show notes and factual claim verification"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "celery[redis]>=5.7.0",
+    "langchain>=1.5.0",
+    "langchain-openai>=1.8.0",
+    "langgraph>=1.2.22",
+    "pydantic>=2.14.3",
+]
