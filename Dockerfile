@@ -12,4 +12,6 @@ COPY pyproject.toml uv.lock ./
 COPY src/ src/
 RUN uv sync --frozen --no-dev
 
+COPY scripts/ scripts/
+
 CMD ["celery", "-A", "src.celery_app:app", "worker", "--loglevel=INFO", "--concurrency=1"]

@@ -1,29 +1,45 @@
-# Podcast agent
+# Podcast analysis agent
 
-Entry-point scaffold only: parsing and graph execution are deliberately unimplemented
-pending review. No model calls or reports are produced yet.
+## How to run
 
-## Layout
+Requires OpenAI and Tavily API keys. Tracing defaults to LangSmith, so add a LangSmith API key too (or use Jaeger below). Create `.env` in the repository root:
 
-- `src/celery_app.py`: Celery configuration.
-- `src/tasks.py`: queued entry point, bucket-key resolution and reading.
-- `src/storage.py`: local mock-bucket path resolution and UTF-8 reading.
-- `src/service.py`: shared parsing and graph invocation boundary.
-- `src/graph.py`: graph invocation placeholder; topology comes next.
-- `mock/`: local stand-in for an S3 bucket.
-
-## Scaffold commands
-
-Install with `uv sync`. With Redis running locally:
-
-```sh
-uv run celery -A src.celery_app:app worker --loglevel=INFO --concurrency=1
-uv run celery -A src.celery_app:app call podcast_agent.analyze_episode \
-  --args='["demo/ep001/transcript.json"]'
+```dotenv
+OPENAI_API_KEY=...
+TAVILY_API_KEY=...
+LANGSMITH_API_KEY=...
 ```
 
-Set `CELERY_BROKER_URL` to override `redis://localhost:6379/0` in both producer
-and worker environments. Both use the `podcast_agent` queue.
+Run from the repository root:
 
-Tasks currently fail explicitly at the parser placeholder. Celery logs task
-failures. Saving reports will be implemented in a later slice.
+```sh
+docker compose up --build -d
+docker compose exec worker ./scripts/run-demos.sh
+docker compose logs -f worker
+```
+
+The script runs inside the worker container and queues the JSON transcripts for `ep001`, `ep002`, and `ep003`. Celery processes one episode at a time per worker; claims within an episode can be checked concurrently. It prints each task ID and report path (`mock/demo/ep001/report.json`, etc., on the host). Tasks run in the background; check the logs for completion before reading reports. Stop with `docker compose down`.
+
+## Tracing
+
+Tracing lets you inspect graph execution, model calls, and per-claim work. Queue the demos using the commands above after starting Compose.
+
+### LangSmith
+
+With `LANGSMITH_API_KEY` in `.env`, run `docker compose up --build -d` and inspect runs in [LangSmith](https://smith.langchain.com/). No other tracing settings are needed.
+
+```dotenv
+LANGSMITH_API_KEY=...
+```
+
+### Jaeger
+
+For local traces without a LangSmith key, omit `LANGSMITH_API_KEY` and add to `.env`:
+
+```dotenv
+LANGSMITH_TRACING_MODE=otel
+```
+
+Run `docker compose up --build -d`, then open [http://localhost:16686](http://localhost:16686) and select `podcast-summarization`. Jaeger starts with Compose in either tracing mode and stores traces in memory; stopping it erases them.
+
+To send traces to both viewers, use `LANGSMITH_TRACING_MODE=hybrid` with a LangSmith API key. To disable tracing, set `LANGSMITH_TRACING=false`. After changing settings, recreate the worker with `docker compose up -d --force-recreate`, then queue the demos again.

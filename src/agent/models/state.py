@@ -1,15 +1,23 @@
-import operator
-from dataclasses import dataclass, field
-from typing import Annotated
+from dataclasses import dataclass
 
-from src.agent.models.fact_check import FactCheck
-from src.agent.models.show_notes import ShowNotes
-from src.agent.models.transcript import Transcript
+from src.agent.models.fact_check_state import FactCheckState
 
 
 @dataclass
-class GraphState:
-    transcript: Transcript
-    pending_checks: list[FactCheck] = field(default_factory=list)
-    fact_checks: Annotated[list[FactCheck], operator.add] = field(default_factory=list)
+class NotableQuote:
+    text: str
+    speaker: str
+    timestamp: str
+
+
+@dataclass
+class ShowNotes:
+    summary: str
+    takeaways: list[str]
+    quotes: list[NotableQuote]
+    topics: list[str]
+
+
+@dataclass
+class GraphState(FactCheckState):
     show_notes: ShowNotes | None = None
