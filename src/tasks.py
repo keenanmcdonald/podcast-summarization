@@ -1,26 +1,23 @@
-import asyncio
 import logging
-from contextvars import copy_context
 from time import monotonic
 
-from celery.signals import worker_process_shutdown
-
-from src.agent.models.transcript import Transcript
+from src.agent.run import analyze_transcript
 from src.celery_app import app
 from src.log_context import task_id
-from src.service import analyze_transcript
+from src.models.transcript import Transcript
 from src.storage import read_transcript, resolve_transcript, write_report
 
+TASK_SOFT_LIMIT_SECONDS = 300
+TASK_HARD_LIMIT_SECONDS = 330
 logger = logging.getLogger(__name__)
-runner = asyncio.Runner()
 
 
-@worker_process_shutdown.connect
-def close_runner(**kwargs: object) -> None:
-    runner.close()
-
-
-@app.task(bind=True, name="podcast_agent.analyze_episode")
+@app.task(
+    bind=True,
+    name="podcast_agent.analyze_episode",
+    soft_time_limit=TASK_SOFT_LIMIT_SECONDS,
+    time_limit=TASK_HARD_LIMIT_SECONDS,
+)
 def analyze_episode(self, transcript_path: str) -> None:
     token = task_id.set(self.request.id)
     started = monotonic()
@@ -30,7 +27,7 @@ def analyze_episode(self, transcript_path: str) -> None:
         contents = read_transcript(path)
         transcript = Transcript.parse(contents, path.suffix.lower())
         logger.info("task_id=%s stage=transcript event=loaded turns=%d", self.request.id, len(transcript.turns))
-        report = runner.run(analyze_transcript(transcript), context=copy_context())
+        report = analyze_transcript(transcript)
         output_path = write_report(path, report)
         logger.info("task_id=%s stage=report event=written path=%s", self.request.id, output_path)
         logger.info("task_id=%s stage=task event=completed duration_s=%.2f", self.request.id, monotonic() - started)

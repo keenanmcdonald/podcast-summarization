@@ -1,10 +1,8 @@
-import json
 import os
 import tempfile
-from dataclasses import asdict
 from pathlib import Path
 
-from src.contracts.report import Report
+from src.models.report import Report
 
 MOCK_ROOT = Path(__file__).resolve().parents[1] / "mock"
 MAX_TRANSCRIPT_BYTES = 1_000_000
@@ -37,7 +35,7 @@ def write_report(transcript_path: Path, report: Report) -> Path:
             mode="w", encoding="utf-8", dir=target.parent, prefix=".report-", delete=False
         ) as output:
             temporary = Path(output.name)
-            json.dump(asdict(report), output, ensure_ascii=False, indent=2)
+            output.write(report.model_dump_json(indent=2))
             output.write("\n")
         os.replace(temporary, target)
     finally:

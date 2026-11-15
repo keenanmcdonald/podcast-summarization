@@ -3,7 +3,7 @@ import unittest
 
 from pydantic import ValidationError
 
-from src.agent.models.transcript import Transcript, TranscriptTurn
+from src.models.transcript import Transcript, TranscriptTurn
 
 
 class TranscriptTests(unittest.TestCase):

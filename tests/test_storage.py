@@ -4,8 +4,13 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from src.contracts.report import Report
-from src.storage import MAX_TRANSCRIPT_BYTES, read_transcript, resolve_transcript, write_report
+from src.models.report import Report
+from src.storage import (
+    MAX_TRANSCRIPT_BYTES,
+    read_transcript,
+    resolve_transcript,
+    write_report,
+)
 
 
 class StorageTests(unittest.TestCase):
@@ -32,10 +37,10 @@ class StorageTests(unittest.TestCase):
             transcript = Path(directory) / "transcript.json"
             target = Path(directory) / "report.json"
             target.write_text("old report")
-            report = Report(summary="Summary", takeaways=["One"], quotes=[], topics=[], fact_checks=[])
+            report = Report(summary="Summary", takeaways=["One", "Two", "Three", "Four", "Five"], quotes=[], topics=[], fact_checks=[])
 
             self.assertEqual(write_report(transcript, report), target)
             self.assertEqual(json.loads(target.read_text()), {
-                "summary": "Summary", "takeaways": ["One"], "quotes": [], "topics": [], "fact_checks": []
+                "summary": "Summary", "takeaways": ["One", "Two", "Three", "Four", "Five"], "quotes": [], "topics": [], "fact_checks": []
             })
             self.assertEqual(list(Path(directory).glob(".report-*")), [])
